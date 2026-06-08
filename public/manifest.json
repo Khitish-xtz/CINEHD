@@ -1,0 +1,22 @@
+{
+  "name": "CinaHD OTT",
+  "short_name": "CinaHD",
+  "description": "Watch movies & TV series in Hindi — ad-free streaming",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#e50914",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

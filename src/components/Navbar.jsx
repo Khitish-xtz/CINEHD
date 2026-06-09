@@ -1,4 +1,4 @@
-import { useContext } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { ThemeContext } from '../App'
 import { HiSearch, HiSun, HiMoon } from 'react-icons/hi'
 
@@ -6,6 +6,8 @@ const NAV_LINKS = [
   { id: 'home',      label: 'Home' },
   { id: 'series',    label: 'TV Series' },
   { id: 'trending',  label: 'Trending' },
+  { id: 'top-rated', label: 'Top Rated' },
+  { id: 'live-tv',   label: 'Live TV' },
   { id: 'genres',    label: 'Genres' },
   { id: 'watchlist', label: 'My List' },
   { id: 'history',   label: 'History' },
@@ -13,6 +15,15 @@ const NAV_LINKS = [
 
 export default function Navbar({ page, onNavigate, onSearchClick }) {
   const { theme, toggleTheme } = useContext(ThemeContext)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
     <header style={{
@@ -22,15 +33,20 @@ export default function Navbar({ page, onNavigate, onSearchClick }) {
       right: 0,
       height: 'var(--nav-height)',
       zIndex: 100,
-      background: 'rgba(5, 5, 8, 0.75)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderBottom: '1px solid var(--border-glass)',
+      background: scrolled
+        ? (theme === 'dark' ? 'rgba(5, 5, 8, 0.88)' : 'rgba(255, 255, 255, 0.88)')
+        : 'transparent',
+      backdropFilter: scrolled ? 'blur(24px)' : 'none',
+      WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
+      borderBottom: scrolled
+        ? `1px solid ${theme === 'dark' ? 'var(--border-glass)' : 'rgba(0,0,0,0.08)'}`
+        : '1px solid transparent',
+      boxShadow: scrolled ? '0 8px 32px rgba(0, 0, 0, 0.25)' : 'none',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 clamp(16px, 4vw, 48px)',
-      transition: 'background-color 0.3s ease',
+      transition: 'background-color 0.35s ease, backdrop-filter 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease',
     }}>
       {/* Left section: Logo & Nav Links */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HiTrash } from 'react-icons/hi'
+import { HiTrash, HiClock } from 'react-icons/hi'
 import MovieCard from './MovieCard'
 import SeriesCard from './SeriesCard'
 
@@ -51,8 +51,10 @@ export default function HistoryPage({ onPlay, onInfo }) {
               width: 72, height: 72, borderRadius: '50%',
               background: 'var(--bg-glass)', border: '1px solid var(--border-glass)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', fontSize: 28,
-            }}>🕐</div>
+              margin: '0 auto 16px', color: 'var(--text-muted)'
+            }}>
+              <HiClock size={28} />
+            </div>
             <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>No watch history</p>
             <p style={{ fontSize: 13 }}>Start watching to build your history</p>
           </div>

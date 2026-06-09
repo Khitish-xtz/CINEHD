@@ -66,17 +66,18 @@ export default function HeroBanner({ movies, onPlay, onInfo }) {
       {/* Gradient overlays */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(to right, rgba(5,5,8,0.95) 0%, rgba(5,5,8,0.4) 50%, transparent 100%)',
+        background: 'linear-gradient(to right, rgba(5,5,8,0.96) 0%, rgba(5,5,8,0.5) 55%, rgba(5,5,8,0.1) 100%)',
         zIndex: 1,
       }} />
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(to top, var(--bg-primary) 0%, transparent 70%)',
+        background: 'linear-gradient(to top, var(--bg-primary) 0%, rgba(5,5,8,0.6) 50%, transparent 100%)',
         zIndex: 1,
       }} />
+      {/* Extra mobile gradient — stronger bottom fade */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 70% 30%, transparent 10%, rgba(5,5,8,0.15) 50%, rgba(5,5,8,0.85) 100%)',
+        background: 'linear-gradient(to top, var(--bg-primary) 8%, transparent 55%)',
         zIndex: 1,
         pointerEvents: 'none',
       }} />
@@ -85,86 +86,76 @@ export default function HeroBanner({ movies, onPlay, onInfo }) {
       <div
         key={current}
         style={{
-          position: 'absolute', bottom: '12%', left: 0, right: 0, zIndex: 2,
-          padding: '0 clamp(16px, 5vw, 80px)',
-          maxWidth: 680,
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2,
+          padding: 'clamp(14px, 4vw, 60px) clamp(16px, 5vw, 80px) clamp(38px, 6vw, 64px)',
+          maxWidth: 700,
           animation: 'fadeInUp 0.55s var(--ease) forwards',
         }}
       >
-        <div style={{
-          background: 'rgba(11, 11, 28, 0.45)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          padding: 'clamp(16px, 3.5vw, 32px)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
-        }}>
-          {/* Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            {movie.rating && (
-              <span style={{
-                padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                background: 'rgba(229,9,20,0.2)', color: '#ff6b6b',
-                border: '1px solid rgba(229,9,20,0.35)',
-              }}>
-                ★ {movie.rating}
-              </span>
-            )}
-            {movie.year && (
-              <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>{movie.year}</span>
-            )}
-            {movie.type === 'tv' && (
-              <span style={{
-                padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
-                background: 'rgba(59,130,246,0.25)', color: '#60a5fa',
-                border: '1px solid rgba(59,130,246,0.35)',
-                letterSpacing: '0.5px',
-              }}>TV SERIES</span>
-            )}
-          </div>
-
-          {/* Genre tags */}
-          {movie.genres?.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-              {movie.genres.slice(0, 3).map(g => (
-                <span key={g.id || g} className="genre-tag" style={{ fontSize: 11, padding: '2px 10px' }}>
-                  {g.name || g}
-                </span>
-              ))}
-            </div>
+        {/* Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {movie.rating && (
+            <span style={{
+              padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+              background: 'rgba(229,9,20,0.2)', color: '#ff6b6b',
+              border: '1px solid rgba(229,9,20,0.35)',
+            }}>
+              ★ {movie.rating}
+            </span>
           )}
+          {movie.year && (
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>{movie.year}</span>
+          )}
+          {movie.type === 'tv' && (
+            <span style={{
+              padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+              background: 'rgba(59,130,246,0.25)', color: '#60a5fa',
+              border: '1px solid rgba(59,130,246,0.35)',
+              letterSpacing: '0.5px',
+            }}>TV SERIES</span>
+          )}
+        </div>
 
-          {/* Title */}
-          <h1 style={{
-            fontSize: 'clamp(22px, 4.5vw, 42px)',
-            fontWeight: 800, letterSpacing: '-0.03em',
-            lineHeight: 1.1, marginBottom: 12,
-            textShadow: '0 2px 30px rgba(0,0,0,0.5)',
-            color: 'var(--text-primary)',
-          }}>
-            {movie.title}
-          </h1>
-
-          {/* Overview */}
-          <p style={{
-            color: 'var(--text-secondary)', fontSize: 'clamp(13px, 1.1vw, 14.5px)',
-            lineHeight: 1.6, maxWidth: 520, marginBottom: 20,
-            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}>
-            {movie.overview}
-          </p>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => onInfo(movie)}>
-              <HiPlay size={18} style={{ marginLeft: 1 }} /> Watch Now
-            </button>
-            <button className="btn-secondary" onClick={() => onInfo(movie)}>
-              <HiInformationCircle size={18} /> More Info
-            </button>
+        {/* Genre tags */}
+        {movie.genres?.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+            {movie.genres.slice(0, 3).map(g => (
+              <span key={g.id || g} className="genre-tag" style={{ fontSize: 11, padding: '2px 10px' }}>
+                {g.name || g}
+              </span>
+            ))}
           </div>
+        )}
+
+        {/* Title */}
+        <h1 style={{
+          fontSize: 'clamp(20px, 5vw, 42px)',
+          fontWeight: 800, letterSpacing: '-0.03em',
+          lineHeight: 1.1, marginBottom: 10,
+          textShadow: '0 2px 30px rgba(0,0,0,0.6)',
+          color: 'var(--text-primary)',
+        }}>
+          {movie.title}
+        </h1>
+
+        {/* Overview — hidden on very small screens */}
+        <p style={{
+          color: 'var(--text-secondary)', fontSize: 'clamp(12px, 1.1vw, 14px)',
+          lineHeight: 1.6, maxWidth: 520, marginBottom: 18,
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }} className="hero-overview">
+          {movie.overview}
+        </p>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn-primary" onClick={() => onInfo(movie)}>
+            <HiPlay size={18} style={{ marginLeft: 1 }} /> Watch Now
+          </button>
+          <button className="btn-secondary" onClick={() => onInfo(movie)}>
+            <HiInformationCircle size={18} /> More Info
+          </button>
         </div>
       </div>
 
@@ -185,24 +176,21 @@ export default function HeroBanner({ movies, onPlay, onInfo }) {
       </button>
 
       {/* Dots */}
-      <div style={{
-        position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', gap: 2, zIndex: 3, alignItems: 'center',
-      }}>
+      <div className="hero-dots">
         {movies.map((_, i) => (
           <button
             key={i}
             onClick={() => goTo(i)}
             aria-label={`Go to slide ${i + 1}`}
             style={{
-              width: 44, height: 44,
+              width: 16, height: 16,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'transparent', border: 'none', padding: 0,
               cursor: 'pointer',
             }}
           >
             <span style={{
-              display: 'block', width: i === current ? 24 : 7, height: 7, borderRadius: 4,
+              display: 'block', width: i === current ? 16 : 5, height: 5, borderRadius: 3,
               background: i === current ? 'var(--accent)' : 'rgba(255,255,255,0.3)',
               transition: 'all 0.3s ease',
             }} />

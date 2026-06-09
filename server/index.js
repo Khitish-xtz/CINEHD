@@ -42,7 +42,10 @@ const formatMovie = (m) => ({
   rating: m.vote_average ? m.vote_average.toFixed(1) : null,
   year: m.release_date?.slice(0, 4) || null,
   genres: m.genre_ids || [],
+  originalLanguage: m.original_language || null,
   type: 'movie',
+  popularity: m.popularity || 0,
+  voteCount: m.vote_count || 0,
 });
 
 /* ── TV/Series formatters ── */
@@ -55,7 +58,10 @@ const formatShow = (s) => ({
   rating: s.vote_average ? s.vote_average.toFixed(1) : null,
   year: s.first_air_date?.slice(0, 4) || null,
   genres: s.genre_ids || [],
+  originalLanguage: s.original_language || null,
   type: 'tv',
+  popularity: s.popularity || 0,
+  voteCount: s.vote_count || 0,
 });
 
 /* ════════════════════════════════════════════
@@ -114,6 +120,37 @@ app.get('/api/genre/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+const getSearchScore = (item, query) => {
+  const title = (item.title || '').toLowerCase().trim();
+  const cleanQ = query.toLowerCase().trim();
+  let score = 0;
+
+  if (title === cleanQ) {
+    score += 100000;
+  } else if (title.startsWith(cleanQ)) {
+    score += 50000;
+  } else if (title.includes(cleanQ)) {
+    score += 10000;
+  }
+
+  // Word-level matches
+  const qWords = cleanQ.split(/\s+/).filter(Boolean);
+  const titleWords = title.split(/\s+/).filter(Boolean);
+  if (qWords.length > 1) {
+    const containsAllWords = qWords.every(qw => titleWords.some(tw => tw.includes(qw)));
+    if (containsAllWords && score === 0) {
+      score += 5000;
+    }
+  }
+
+  // Add popularity directly
+  score += item.popularity || 0;
+  // Add rating factor (scaled to not overpower title matches)
+  score += (parseFloat(item.rating) || 0) * 10;
+
+  return score;
+};
+
 app.get('/api/search', async (req, res) => {
   try {
     const q = req.query.q;
@@ -123,10 +160,19 @@ app.get('/api/search', async (req, res) => {
       tmdbFetch('/search/movie', { query: q, page: req.query.page || 1 }),
       tmdbFetch('/search/tv', { query: q, page: req.query.page || 1 }),
     ]);
+    
+    const cleanQ = q.trim().toLowerCase();
     const combined = [
       ...movies.results.map(formatMovie),
       ...shows.results.map(formatShow),
-    ].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+    ];
+
+    combined.sort((a, b) => {
+      const scoreA = getSearchScore(a, cleanQ);
+      const scoreB = getSearchScore(b, cleanQ);
+      return scoreB - scoreA;
+    });
+
     res.json({ results: combined, totalPages: Math.max(movies.total_pages, shows.total_pages) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -134,7 +180,7 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/movie/:id', async (req, res) => {
   try {
     const data = await tmdbFetch(`/movie/${req.params.id}`, {
-      append_to_response: 'videos,credits,similar',
+      append_to_response: 'videos,credits,similar,reviews',
     });
     res.json({
       id: data.id,
@@ -157,6 +203,19 @@ app.get('/api/movie/:id', async (req, res) => {
       })),
       director: (data.credits?.crew || []).find(c => c.job === 'Director')?.name || null,
       similar: (data.similar?.results || []).slice(0, 8).map(formatMovie),
+      reviews: (data.reviews?.results || []).slice(0, 8).map(r => ({
+        id: r.id,
+        author: r.author,
+        content: r.content,
+        rating: r.author_details?.rating || null,
+        avatar: r.author_details?.avatar_path
+          ? (r.author_details.avatar_path.startsWith('/http')
+            ? r.author_details.avatar_path.substring(1)
+            : `${TMDB_IMG}/w185${r.author_details.avatar_path}`)
+          : null,
+      })),
+      originalLanguage: data.original_language || null,
+      imdbId: data.imdb_id || null,
       type: 'movie',
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -205,7 +264,7 @@ app.get('/api/tv/search', async (req, res) => {
 app.get('/api/tv/:id', async (req, res) => {
   try {
     const data = await tmdbFetch(`/tv/${req.params.id}`, {
-      append_to_response: 'videos,credits,similar',
+      append_to_response: 'videos,credits,similar,reviews,external_ids',
     });
     res.json({
       id: data.id,
@@ -236,6 +295,19 @@ app.get('/api/tv/:id', async (req, res) => {
       })),
       similar: (data.similar?.results || []).slice(0, 8).map(formatShow),
       trailer: data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube')?.key || null,
+      reviews: (data.reviews?.results || []).slice(0, 8).map(r => ({
+        id: r.id,
+        author: r.author,
+        content: r.content,
+        rating: r.author_details?.rating || null,
+        avatar: r.author_details?.avatar_path
+          ? (r.author_details.avatar_path.startsWith('/http')
+            ? r.author_details.avatar_path.substring(1)
+            : `${TMDB_IMG}/w185${r.author_details.avatar_path}`)
+          : null,
+      })),
+      originalLanguage: data.original_language || null,
+      imdbId: data.external_ids?.imdb_id || null,
       type: 'tv',
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -292,6 +364,75 @@ app.get('/api/home', async (_, res) => {
         { id: 'now-playing', title: '🎭 Now Playing', movies: nowPlaying.results.slice(0, 20).map(formatMovie) },
       ],
       genres: genres.genres,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ════════════════════════════════════════════
+   PROVIDERS & ACTORS ROUTES
+   ════════════════════════════════════════════ */
+app.get('/api/provider/:name', async (req, res) => {
+  const name = req.params.name.toLowerCase();
+  const page = req.query.page || 1;
+  const type = req.query.type || 'tv';
+
+  const providers = {
+    netflix: { network: 213, company: 7254 },
+    prime: { network: 1024, company: 20580 },
+    disney: { network: 2739, company: 2 },
+    hbo: { network: 49, company: 3268 },
+    apple: { network: 2552, company: 132402 },
+    jiohotstar: { network: 2739, company: 2 }
+  };
+
+  const provider = providers[name];
+  if (!provider) return res.status(400).json({ error: 'Unknown provider' });
+
+  try {
+    if (type === 'movie') {
+      const data = await tmdbFetch('/discover/movie', {
+        with_companies: provider.company,
+        sort_by: 'popularity.desc',
+        page,
+      });
+      res.json({ results: data.results.map(formatMovie), totalPages: data.total_pages });
+    } else {
+      const data = await tmdbFetch('/discover/tv', {
+        with_networks: provider.network,
+        sort_by: 'popularity.desc',
+        page,
+      });
+      res.json({ results: data.results.map(formatShow), totalPages: data.total_pages });
+    }
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/person/:id', async (req, res) => {
+  try {
+    const [bio, credits] = await Promise.all([
+      tmdbFetch(`/person/${req.params.id}`),
+      tmdbFetch(`/person/${req.params.id}/combined_credits`),
+    ]);
+
+    res.json({
+      id: bio.id,
+      name: bio.name,
+      biography: bio.biography || 'No biography available.',
+      profile: bio.profile_path ? `${TMDB_IMG}/w300${bio.profile_path}` : null,
+      birthday: bio.birthday || null,
+      placeOfBirth: bio.place_of_birth || null,
+      knownFor: bio.known_for_department || null,
+      filmography: (credits.cast || [])
+        .slice(0, 24)
+        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+        .map(c => ({
+          id: c.id,
+          title: c.title || c.name,
+          poster: c.poster_path ? `${TMDB_IMG}/w300${c.poster_path}` : null,
+          rating: c.vote_average ? c.vote_average.toFixed(1) : null,
+          year: c.release_date?.slice(0, 4) || c.first_air_date?.slice(0, 4) || null,
+          type: c.media_type || 'movie',
+        })),
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

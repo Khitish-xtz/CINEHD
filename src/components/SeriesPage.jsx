@@ -3,7 +3,7 @@ import HeroBanner from './HeroBanner'
 import CategoryRow from './CategoryRow'
 import { HiExclamationCircle, HiRefresh } from 'react-icons/hi'
 
-export default function SeriesPage({ onPlay, onInfo }) {
+export default function SeriesPage({ onPlay, onInfo, isDesktop, onNavigate }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -32,10 +32,10 @@ export default function SeriesPage({ onPlay, onInfo }) {
             ...s, backdrop: s.backdrop ? s.backdrop.replace('/w1280', '/original') : null,
           })),
           sections: [
-            { id: 'tv-trending', title: 'Trending Series', movies: trending.results || [] },
-            { id: 'tv-popular',  title: 'Popular Series',  movies: popular.results || [] },
-            { id: 'tv-top-rated',title: 'Top Rated Series', movies: topRated.results || [] },
-            { id: 'tv-on-air',   title: 'Currently On Air', movies: onAir.results || [] },
+            { id: 'tv-trending',  title: 'Trending Series',    movies: trending.results  || [] },
+            { id: 'tv-popular',   title: 'Popular Series',     movies: popular.results   || [] },
+            { id: 'tv-top-rated', title: 'Top Rated Series',   movies: topRated.results  || [] },
+            { id: 'tv-on-air',    title: 'Currently On Air',   movies: onAir.results     || [] },
           ]
         })
         setLoading(false)
@@ -43,13 +43,13 @@ export default function SeriesPage({ onPlay, onInfo }) {
       .catch(e => { clearTimeout(timeout); setError(typeof e === 'string' ? e : e.message || 'Failed to fetch series data'); setLoading(false) })
   }
 
-  useEffect(() => { fetchSeries() }, [])
+  useEffect(() => { const cleanup = fetchSeries(); return cleanup }, [])
 
   if (loading) {
     return (
-      <div style={{ paddingTop: 'var(--nav-height)', background: 'var(--bg-primary)', minHeight: '100vh' }}>
+      <div className="mobile-page" style={{ paddingTop: 'var(--nav-height)', background: 'var(--bg-primary)', minHeight: '100dvh' }}>
         <div style={{
-          height: 'clamp(250px, 42vh, 380px)', minHeight: 250,
+          height: 'clamp(240px, 44vh, 340px)', minHeight: 240,
           display: 'flex', alignItems: 'flex-end', padding: 'clamp(20px, 4vw, 40px)',
           position: 'relative', overflow: 'hidden',
         }} className="shimmer">
@@ -64,13 +64,11 @@ export default function SeriesPage({ onPlay, onInfo }) {
           </div>
         </div>
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ padding: '28px 16px' }}>
-            <div className="shimmer" style={{ width: 160, height: 18, borderRadius: 6, marginBottom: 14 }} />
-            <div style={{ display: 'flex', gap: 10, overflow: 'hidden' }}>
-              {[1, 2, 3, 4, 5, 6].map(j => (
-                <div key={j} className="shimmer" style={{
-                  flex: '0 0 clamp(110px, 14vw, 150px)', aspectRatio: '2/3', borderRadius: 10,
-                }} />
+          <div key={i} style={{ padding: '20px 14px' }}>
+            <div className="shimmer" style={{ width: 160, height: 18, borderRadius: 6, marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 8, overflow: 'hidden' }}>
+              {[1, 2, 3, 4, 5].map(j => (
+                <div key={j} className="shimmer" style={{ flex: '0 0 clamp(110px, 30vw, 150px)', aspectRatio: '2/3', borderRadius: 10 }} />
               ))}
             </div>
           </div>
@@ -81,7 +79,7 @@ export default function SeriesPage({ onPlay, onInfo }) {
 
   if (error) {
     return (
-      <div style={{
+      <div className="mobile-page" style={{
         paddingTop: 'var(--nav-height)', minHeight: '100dvh', background: 'var(--bg-primary)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', textAlign: 'center', padding: 24,
@@ -106,15 +104,25 @@ export default function SeriesPage({ onPlay, onInfo }) {
   }
 
   return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100dvh' }}>
-      <HeroBanner movies={data?.hero} onPlay={onPlay} onInfo={onInfo} />
-      <div style={{ marginTop: -50, position: 'relative', zIndex: 2, paddingBottom: 40 }}>
+    <div className="page-fade-in mobile-page" style={{ background: 'var(--bg-primary)', minHeight: '100dvh', paddingTop: 'var(--nav-height)' }}>
+      {/* Hero — only show on desktop; on mobile it takes too much space for a series page */}
+      {isDesktop && <HeroBanner movies={data?.hero} onPlay={onPlay} onInfo={onInfo} />}
+
+      {/* Content — no negative overlap, add slight padding if no hero */}
+      <div style={{ position: 'relative', zIndex: 2, paddingBottom: 40, paddingTop: !isDesktop ? 12 : 0 }}>
         {myList.length > 0 && (
           <CategoryRow title="My List (TV Series)" movies={myList} onPlay={onPlay} onInfo={onInfo} delay={0} />
         )}
         {data?.sections?.map((section, idx) => (
-          <CategoryRow key={section.id} title={section.title} movies={section.movies}
-            onPlay={onPlay} onInfo={onInfo} delay={(idx + 1) * 0.06} />
+          <CategoryRow
+            key={section.id}
+            title={section.title}
+            movies={section.movies}
+            onPlay={onPlay}
+            onInfo={onInfo}
+            delay={(idx + 1) * 0.06}
+            onSeeAll={onNavigate ? () => onNavigate(section.id) : null}
+          />
         ))}
         {(!data?.sections || data.sections.length === 0) && (
           <div style={{ textAlign: 'center', padding: '60px 16px', color: 'var(--text-muted)' }}>

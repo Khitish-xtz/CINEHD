@@ -33,7 +33,7 @@ setTimeout(() => {
     cwd: __dirname,
   })
 
-  const vite = spawn('node', ['node_modules/vite/bin/vite.js'], {
+  const vite = spawn('node', ['node_modules/vite/bin/vite.js', '--host'], {
     stdio: 'inherit',
     shell: false,
     cwd: __dirname,

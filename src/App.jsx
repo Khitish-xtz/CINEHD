@@ -10,7 +10,10 @@ import CategoryPage from './components/CategoryPage'
 import SeriesPage from './components/SeriesPage'
 import WatchlistPage from './components/WatchlistPage'
 import HistoryPage from './components/HistoryPage'
-import { HiHome, HiFire, HiStar, HiCollection, HiFilm, HiBookmarkAlt, HiClock, HiSearch } from 'react-icons/hi'
+import ProviderPage from './components/ProviderPage'
+import LiveTvPage from './components/LiveTvPage'
+import PersonModal from './components/PersonModal'
+import { HiHome, HiFire, HiStar, HiCollection, HiFilm, HiBookmarkAlt, HiClock, HiSearch, HiDesktopComputer } from 'react-icons/hi'
 import { HiTv } from 'react-icons/hi2'
 
 /* ── Theme Context ── */
@@ -48,6 +51,7 @@ const NAV_ITEMS = [
   { id: 'home',      label: 'Home',       icon: HiHome       },
   { id: 'series',    label: 'TV',         icon: HiTv         },
   { id: 'trending',  label: 'Trending',   icon: HiFire       },
+  { id: 'live-tv',   label: 'Live TV',    icon: HiDesktopComputer },
   { id: 'watchlist', label: 'My List',    icon: HiBookmarkAlt },
   { id: 'genres',    label: 'Explore',    icon: HiCollection },
 ]
@@ -92,6 +96,8 @@ export default function App() {
   const [playingMovie, setPlayingMovie]     = useState(null)
   const [showSearch, setShowSearch]         = useState(false)
   const [isDesktop, setIsDesktop]           = useState(window.innerWidth >= 768)
+  const [selectedProvider, setSelectedProvider] = useState(null)
+  const [personId, setPersonId]                 = useState(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -104,7 +110,9 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  const handlePlay = useCallback((movie) => setPlayingMovie(movie), [])
+  const handlePlay = useCallback((movie) => {
+    setSelectedMedia({ id: movie.id, type: movie.type || 'movie', autoPlay: true })
+  }, [])
   const handleInfo = useCallback((media) => setSelectedMedia({ id: media.id, type: media.type || 'movie' }), [])
   const handleCloseDetail = useCallback(() => setSelectedMedia(null), [])
   const navigate = useCallback((p) => setPage(p), [])
@@ -145,15 +153,21 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case 'home':      return <HomePage onPlay={handlePlay} onInfo={handleInfo} />
-      case 'series':    return <SeriesPage onPlay={handlePlay} onInfo={handleInfo} />
+      case 'home':      return <HomePage onPlay={handlePlay} onInfo={handleInfo} onProviderClick={(name) => { setSelectedProvider(name); setPage('provider') }} onNavigate={navigate} />
+      case 'series':    return <SeriesPage onPlay={handlePlay} onInfo={handleInfo} isDesktop={isDesktop} onNavigate={navigate} />
       case 'genres':    return <GenrePage onPlay={handlePlay} onInfo={handleInfo} />
       case 'trending':  return <CategoryPage category="trending-now"   onPlay={handlePlay} onInfo={handleInfo} />
       case 'top-rated': return <CategoryPage category="top-rated"      onPlay={handlePlay} onInfo={handleInfo} />
       case 'popular':   return <CategoryPage category="popular-movies" onPlay={handlePlay} onInfo={handleInfo} />
+      case 'tv-trending':  return <CategoryPage category="tv-trending"  onPlay={handlePlay} onInfo={handleInfo} />
+      case 'tv-popular':   return <CategoryPage category="tv-popular"   onPlay={handlePlay} onInfo={handleInfo} />
+      case 'tv-top-rated': return <CategoryPage category="tv-top-rated" onPlay={handlePlay} onInfo={handleInfo} />
+      case 'tv-on-air':    return <CategoryPage category="tv-on-air"    onPlay={handlePlay} onInfo={handleInfo} />
       case 'watchlist': return <WatchlistPage onPlay={handlePlay} onInfo={handleInfo} />
       case 'history':   return <HistoryPage onPlay={handlePlay} onInfo={handleInfo} />
-      default:          return <HomePage onPlay={handlePlay} onInfo={handleInfo} />
+      case 'provider':  return <ProviderPage providerName={selectedProvider} onPlay={handlePlay} onInfo={handleInfo} onBack={() => setPage('home')} />
+      case 'live-tv':   return <LiveTvPage />
+      default:          return <HomePage onPlay={handlePlay} onInfo={handleInfo} onProviderClick={(name) => { setSelectedProvider(name); setPage('provider') }} onNavigate={navigate} />
     }
   }
 
@@ -197,11 +211,12 @@ export default function App() {
               paddingBottom: showChrome ? 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' : 0,
               display: 'flex',
               flexDirection: 'column',
+              overscrollBehavior: 'contain',
+              overscrollBehaviorY: 'contain',
             }}>
               <div style={{ flex: 1 }}>
                 {!hasDetail && renderPage()}
               </div>
-              {showChrome && <Footer />}
             </main>
 
             {/* Mobile bottom nav */}
@@ -210,43 +225,41 @@ export default function App() {
                 position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
                 height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                background: theme === 'dark' ? 'rgba(9,9,11,0.97)' : 'rgba(255,255,255,0.97)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-                borderTop: `1px solid ${theme === 'dark' ? 'var(--border-glass)' : 'rgba(0,0,0,0.08)'}`,
+                background: theme === 'dark' ? 'rgba(5,5,8,0.97)' : 'rgba(255,255,255,0.97)',
+                backdropFilter: 'blur(32px)',
+                WebkitBackdropFilter: 'blur(32px)',
+                borderTop: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-                padding: '0 4px',
+                padding: '0 6px',
+                boxShadow: theme === 'dark' ? '0 -1px 0 rgba(255,255,255,0.03), 0 -8px 24px rgba(0,0,0,0.4)' : '0 -1px 0 rgba(0,0,0,0.05)',
               }}>
                 {NAV_ITEMS.map(item => {
                   const isActive = item.id === page || (item.id === 'genres' && (page === 'top-rated' || page === 'popular' || page === 'history'))
                   return (
-                    <button key={item.id} onClick={() => setPage(item.id)} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      justifyContent: 'center', gap: 2, padding: '6px 0', position: 'relative',
-                      color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                      transition: 'color 0.2s ease', flex: 1, minWidth: 0,
-                      minHeight: 44,
-                    }}>
-                      <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                      <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, lineHeight: 1 }}>{item.label}</span>
-                      {isActive && (
-                        <div style={{
-                          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                          width: 20, height: 2.5, borderRadius: 2, background: 'var(--accent)',
-                        }} />
-                      )}
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (navigator.vibrate) navigator.vibrate(8)
+                        setPage(item.id)
+                      }}
+                      className={`bottom-nav-btn${isActive ? ' active' : ''}`}
+                    >
+                      {isActive && <span className="bottom-nav-pill" />}
+                      <item.icon size={24} />
+                      <span className="bottom-nav-label">{item.label}</span>
                     </button>
                   )
                 })}
                 {/* Search button */}
-                <button onClick={() => setShowSearch(true)} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: 2, padding: '6px 0', position: 'relative',
-                  color: 'var(--text-muted)', transition: 'color 0.2s ease', flex: 1, minWidth: 0,
-                  minHeight: 44,
-                }}>
-                  <HiSearch size={22} strokeWidth={1.8} />
-                  <span style={{ fontSize: 10, fontWeight: 400, lineHeight: 1 }}>Search</span>
+                <button
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8)
+                    setShowSearch(true)
+                  }}
+                  className="bottom-nav-btn"
+                >
+                  <HiSearch size={24} />
+                  <span className="bottom-nav-label">Search</span>
                 </button>
               </nav>
             )}
@@ -265,23 +278,37 @@ export default function App() {
         {selectedMedia?.type === 'tv' && (
           <SeriesDetail
             seriesId={selectedMedia.id}
+            autoPlay={selectedMedia.autoPlay}
             onClose={handleCloseDetail}
             onPlay={(m) => { handleCloseDetail(); setTimeout(() => handlePlay(m), 80) }}
             onInfo={(m) => { handleCloseDetail(); setTimeout(() => handleInfo(m), 80) }}
+            onPersonClick={(id) => setPersonId(id)}
           />
         )}
 
         {selectedMedia?.type === 'movie' && (
           <MovieDetail
             movieId={selectedMedia.id}
+            autoPlay={selectedMedia.autoPlay}
             onClose={handleCloseDetail}
             onPlay={(m) => { handleCloseDetail(); setTimeout(() => handlePlay(m), 80) }}
             onInfo={(m) => { handleCloseDetail(); setTimeout(() => handleInfo(m), 80) }}
+            onPersonClick={(id) => setPersonId(id)}
           />
         )}
 
         {playingMovie && (
           <PlayerModal movie={playingMovie} onClose={() => setPlayingMovie(null)} />
+        )}
+
+        {personId && (
+          <PersonModal
+            personId={personId}
+            onClose={() => setPersonId(null)}
+            onMediaClick={(m) => {
+              setSelectedMedia({ id: m.id, type: m.type });
+            }}
+          />
         )}
       </ErrorBoundary>
     </ThemeContext.Provider>

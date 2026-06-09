@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { HiSearch, HiX, HiPlay, HiClock, HiTrash } from 'react-icons/hi'
+import { HiSearch, HiX, HiPlay, HiClock, HiTrash, HiFire, HiFilm } from 'react-icons/hi'
+import { HiTv } from 'react-icons/hi2'
 
 const STORAGE_KEY = 'cinahd_recent_searches'
 const MAX_RECENT = 10
@@ -184,6 +185,46 @@ export default function SearchModal({ onClose, onPlay, onInfo }) {
               </div>
             </div>
 
+            {/* Trending Searches */}
+            <div>
+              <h3 style={{
+                display: 'flex', alignItems: 'center',
+                fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12
+              }}>
+                <HiFire size={14} style={{ color: '#ff6b6b', marginRight: 6 }} /> Trending Searches
+              </h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['Wednesday', 'The Boys', 'Stranger Things', 'Loki', 'Invincible', 'Interstellar', 'Succession'].map(trend => (
+                  <button
+                    key={trend}
+                    onClick={() => {
+                      setQuery(trend);
+                      handleSubmit(trend);
+                    }}
+                    style={{
+                      padding: '8px 16px', borderRadius: 'var(--radius-full)',
+                      fontSize: 12, fontWeight: 600,
+                      background: 'rgba(229,9,20,0.06)', border: '1px solid rgba(229,9,20,0.2)',
+                      color: '#ff6b6b', transition: 'all var(--transition)',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent)'
+                      e.currentTarget.style.color = 'white'
+                      e.currentTarget.style.background = 'var(--accent)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(229,9,20,0.2)'
+                      e.currentTarget.style.color = '#ff6b6b'
+                      e.currentTarget.style.background = 'rgba(229,9,20,0.06)'
+                    }}
+                  >
+                    {trend}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {recentSearches.length > 0 && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -321,7 +362,7 @@ function SearchRowItem({ item, onPlay, onInfo }) {
           <img src={imgSrc} alt="" onError={() => setImgErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'var(--text-muted)' }}>
-            {isTV ? '📺' : '🎬'}
+            {isTV ? <HiTv size={18} /> : <HiFilm size={18} />}
           </div>
         )}
       </div>

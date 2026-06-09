@@ -9,11 +9,6 @@ const MovieCard = memo(({ movie, onPlay, onInfo }) => {
     <div
       onClick={() => onInfo?.(movie)}
       className="media-card"
-      style={{
-        flex: '0 0 auto',
-        width: 'clamp(110px, 30vw, 160px)',
-        cursor: 'pointer',
-      }}
     >
       <div className="card-img-wrap">
         {imgSrc ? (
@@ -40,6 +35,23 @@ const MovieCard = memo(({ movie, onPlay, onInfo }) => {
           </button>
         </div>
 
+        {/* Language Badge */}
+        {(() => {
+          const orig = movie.originalLanguage || movie.original_language;
+          let label = '';
+          if (orig === 'hi') label = 'Hindi';
+          else if (orig === 'te') label = 'Telugu';
+          else if (orig === 'ta') label = 'Tamil';
+          else if (orig === 'en') label = 'Dual Audio';
+          
+          if (!label) return null;
+          return (
+            <div className="audio-badge" style={{ top: 6, left: 6 }}>
+              {label}
+            </div>
+          );
+        })()}
+
         {/* Rating badge */}
         {movie.rating && (
           <div style={{
@@ -51,10 +63,10 @@ const MovieCard = memo(({ movie, onPlay, onInfo }) => {
           }}>★ {movie.rating}</div>
         )}
 
-        {/* TV badge */}
+        {/* TV badge if tv (shows below language badge) */}
         {movie.type === 'tv' && (
           <div style={{
-            position: 'absolute', top: 6, left: 6,
+            position: 'absolute', top: 32, left: 6,
             padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700,
             background: 'rgba(59,130,246,0.85)', color: 'white',
             zIndex: 3,
@@ -64,7 +76,7 @@ const MovieCard = memo(({ movie, onPlay, onInfo }) => {
         {/* Content rating badge (PG-13, R, etc.) */}
         {movie.adult && (
           <div style={{
-            position: 'absolute', top: 6, left: movie.type === 'tv' ? 30 : 6,
+            position: 'absolute', top: 6, left: 70,
             padding: '2px 5px', borderRadius: 3, fontSize: 8, fontWeight: 700,
             background: 'rgba(239,68,68,0.85)', color: 'white',
             zIndex: 3,
@@ -86,15 +98,8 @@ const MovieCard = memo(({ movie, onPlay, onInfo }) => {
 
         {/* Progress bar */}
         {movie.progress > 0 && (
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
-            background: 'rgba(255,255,255,0.15)',
-            zIndex: 3,
-          }}>
-            <div style={{
-              height: '100%', width: `${Math.min(movie.progress, 100)}%`,
-              background: 'var(--accent)', borderRadius: '0 2px 2px 0',
-            }} />
+          <div className="watch-progress-container">
+            <div className="watch-progress-bar" style={{ width: `${Math.min(movie.progress, 100)}%` }} />
           </div>
         )}
       </div>

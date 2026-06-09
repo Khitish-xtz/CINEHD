@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { HiPlay, HiInformationCircle, HiStar } from 'react-icons/hi'
+import { HiTv } from 'react-icons/hi2'
 
 export default function SeriesCard({ series, onPlay, onInfo }) {
   const [imgErr, setImgErr] = useState(false)
@@ -13,11 +14,6 @@ export default function SeriesCard({ series, onPlay, onInfo }) {
     <div
       onClick={() => onInfo?.({ ...series, type: 'tv' })}
       className="media-card"
-      style={{
-        flex: '0 0 auto',
-        width: 'clamp(110px, 30vw, 150px)',
-        cursor: 'pointer',
-      }}
     >
       <div className="card-img-wrap">
         {!imgErr && series.poster ? (
@@ -32,7 +28,8 @@ export default function SeriesCard({ series, onPlay, onInfo }) {
             alignItems: 'center', justifyContent: 'center',
             color: 'var(--text-muted)', fontSize: 11, padding: 8, textAlign: 'center', gap: 6,
           }}>
-            <span style={{ fontSize: 24 }}>📺</span>{series.title}
+            <HiTv size={24} style={{ color: 'var(--text-muted)' }} />
+            <span>{series.title}</span>
           </div>
         )}
 
@@ -82,13 +79,22 @@ export default function SeriesCard({ series, onPlay, onInfo }) {
           </div>
         )}
 
-        {/* TV badge */}
-        <div style={{
-          position: 'absolute', top: 6, left: 6,
-          padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700,
-          background: 'rgba(59,130,246,0.88)', color: 'white',
-          zIndex: 3,
-        }}>SERIES</div>
+        {/* Language Badge */}
+        {(() => {
+          const orig = series.originalLanguage || series.original_language;
+          let label = '';
+          if (orig === 'hi') label = 'Hindi';
+          else if (orig === 'te') label = 'Telugu';
+          else if (orig === 'ta') label = 'Tamil';
+          else if (orig === 'en') label = 'Dual Audio';
+          
+          if (!label) return null;
+          return (
+            <div className="audio-badge" style={{ top: 6, left: 6 }}>
+              {label}
+            </div>
+          );
+        })()}
 
         {/* Episode badge for continue watching */}
         {series.episode && (
@@ -111,6 +117,13 @@ export default function SeriesCard({ series, onPlay, onInfo }) {
             background: 'rgba(239,68,68,0.85)', color: 'white',
             zIndex: 3,
           }}>18+</div>
+        )}
+
+        {/* Progress bar */}
+        {series.progress > 0 && (
+          <div className="watch-progress-container">
+            <div className="watch-progress-bar" style={{ width: `${Math.min(series.progress, 100)}%` }} />
+          </div>
         )}
       </div>
 

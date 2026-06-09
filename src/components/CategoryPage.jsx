@@ -9,6 +9,10 @@ const API_MAP = {
   'top-rated': '/api/top-rated',
   'coming-soon': '/api/upcoming',
   'now-playing': '/api/now-playing',
+  'tv-trending': '/api/tv/trending',
+  'tv-popular': '/api/tv/popular',
+  'tv-top-rated': '/api/tv/top-rated',
+  'tv-on-air': '/api/tv/on-air',
 }
 
 const SORT_OPTIONS = [
@@ -38,6 +42,7 @@ export default function CategoryPage({ category, onPlay, onInfo }) {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [sortBy, setSortBy] = useState('default')
   const [showSort, setShowSort] = useState(false)
   const loaderRef = useRef(null)
@@ -56,17 +61,22 @@ export default function CategoryPage({ category, onPlay, onInfo }) {
   // Infinite scroll observer
   useEffect(() => {
     if (page === 1 || !apiPath) return
+    setLoadingMore(true)
     fetch(`${apiPath}?page=${page}`)
       .then(r => r.json())
-      .then(d => setMovies(prev => [...prev, ...(d.results || [])]))
+      .then(d => {
+        setMovies(prev => [...prev, ...(d.results || [])])
+        setLoadingMore(false)
+      })
+      .catch(() => setLoadingMore(false))
   }, [page, category, apiPath])
 
   const handleObserver = useCallback((entries) => {
     const target = entries[0]
-    if (target.isIntersecting && page < totalPages && !loading) {
+    if (target.isIntersecting && page < totalPages && !loading && !loadingMore) {
       setPage(p => p + 1)
     }
-  }, [page, totalPages, loading])
+  }, [page, totalPages, loading, loadingMore])
 
   useEffect(() => {
     const option = { root: null, rootMargin: '200px', threshold: 0 }
@@ -81,6 +91,10 @@ export default function CategoryPage({ category, onPlay, onInfo }) {
     'top-rated': 'Top Rated',
     'coming-soon': 'Coming Soon',
     'now-playing': 'Now Playing',
+    'tv-trending': 'Trending TV Series',
+    'tv-popular': 'Popular TV Series',
+    'tv-top-rated': 'Top Rated TV Series',
+    'tv-on-air': 'Currently On Air',
   }
 
   if (!apiPath) {
@@ -149,9 +163,22 @@ export default function CategoryPage({ category, onPlay, onInfo }) {
                 )
               ))}
             </div>
+            {/* Load More manual button */}
+            {page < totalPages && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 12 }}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => !loadingMore && setPage(p => p + 1)}
+                  disabled={loadingMore}
+                  style={{ width: '100%', maxWidth: 200, opacity: loadingMore ? 0.7 : 1 }}
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
+            )}
             {/* Infinite scroll trigger */}
             <div ref={loaderRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {page < totalPages && (
+              {page < totalPages && loadingMore && (
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%',
                   border: '2px solid var(--border-glass)', borderTopColor: 'var(--accent)',

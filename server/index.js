@@ -461,4 +461,8 @@ const start = async () => {
   }
 };
 
-app.listen(PORT, start);
+if (!process.env.VERCEL) {
+  app.listen(PORT, start);
+}
+
+export default app;

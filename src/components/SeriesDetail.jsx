@@ -395,7 +395,7 @@ export default function SeriesDetail({ seriesId, onClose, onPlay, onInfo, onPers
               const isActive = srcIdx === i
               const isAdFree = ['Cinezo', 'NHDAPI', 'WatchOut', 'Indra'].includes(s.label)
               let pulseColor = 'green'
-              if (s.label === 'VidSrc' || s.label === 'Vidsrc.to') pulseColor = 'orange'
+              if (s.label.toLowerCase().includes('vidsrc') || s.label.toLowerCase().includes('vsrc')) pulseColor = 'orange'
               else if (s.label === 'Videasy') pulseColor = 'blue'
               
               return (

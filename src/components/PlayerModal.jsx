@@ -267,7 +267,7 @@ export default function PlayerModal({ movie, onClose }) {
           const isActive = srcIdx === i
           const isAdFree = ['Cinezo', 'NHDAPI', 'WatchOut', 'Indra'].includes(s.label)
           let pulseColor = 'green'
-          if (s.label === 'VidSrc' || s.label === 'Vidsrc.to') pulseColor = 'orange'
+          if (s.label.toLowerCase().includes('vidsrc') || s.label.toLowerCase().includes('vsrc')) pulseColor = 'orange'
           else if (s.label === 'Videasy') pulseColor = 'blue'
           
           return (
@@ -386,7 +386,7 @@ export default function PlayerModal({ movie, onClose }) {
         flexShrink: 0, gap: 10,
       }}>
         <p className="player-tip" style={{ fontSize: 9.5, color: 'var(--text-muted)', textAlign: 'left', lineHeight: 1.4 }}>
-          S1 Native · S2 Videasy · S3 WatchOut · S4 Indra · S5 Cinezo · S6 VidLink · S7 NHDAPI · S8 ScreenScape · S9 VidSrc
+          Active Server: S{srcIdx + 1} {source.label} &middot; {source.desc}
         </p>
         <p style={{ fontSize: 9.5, color: 'var(--text-muted)', textAlign: 'right', fontWeight: 500 }} className="player-tip">
           Press <kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '1px 4px', borderRadius: 3, border: '1px solid rgba(255,255,255,0.08)' }}>Esc</kbd> to close

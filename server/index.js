@@ -437,6 +437,151 @@ app.get('/api/person/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+/* ════════════════════════════════════════════
+   ZEE5 STREAM PROXY
+════════════════════════════════════════════ */
+const zee5Cache = { platformToken: null, streamUrls: new Map() };
+const ZEE5_TOKEN_TTL = 12 * 60 * 60 * 1000;
+const ZEE5_STREAM_TTL = 45 * 60 * 1000;
+
+function generateGuestToken() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function generateDDToken() {
+  return Buffer.from(JSON.stringify({
+    schema_version: '1', os_name: 'N/A', os_version: 'N/A',
+    platform_name: 'Chrome', platform_version: '104', device_name: '',
+    app_name: 'Web', app_version: '2.52.31',
+    player_capabilities: {
+      audio_channel: ['STEREO'], video_codec: ['H264'],
+      container: ['MP4', 'TS'], package: ['DASH', 'HLS'],
+      resolution: ['240p', 'SD', 'HD', 'FHD'], dynamic_range: ['SDR']
+    },
+    security_capabilities: {
+      encryption: ['WIDEVINE_AES_CTR'], widevine_security_level: ['L3'],
+      hdcp_version: ['HDCP_V1', 'HDCP_V2', 'HDCP_V2_1', 'HDCP_V2_2']
+    }
+  })).toString('base64');
+}
+
+async function fetchPlatformToken() {
+  const { data } = await axios.get('https://www.zee5.com/', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+      'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'none'
+    },
+    timeout: 15000
+  });
+  const match = data.match(/__NEXT_DATA__"\s*type="application\/json">(\{.*?\})<\/script>/s);
+  if (!match) throw new Error('Could not find Next.js data on zee5.com');
+  const json = JSON.parse(match[1]);
+  const token = json.props?.initialServerSideState?.initialLaunchData?.platform_token?.token;
+  if (!token) throw new Error('Could not extract platform token from zee5.com');
+  return token;
+}
+
+async function getCachedPlatformToken() {
+  // Use auth token from .env for premium channels
+  if (process.env.ZEE5_AUTH_TOKEN) {
+    return process.env.ZEE5_AUTH_TOKEN;
+  }
+  if (zee5Cache.platformToken && Date.now() - zee5Cache.platformToken.fetchedAt < ZEE5_TOKEN_TTL) {
+    return zee5Cache.platformToken.value;
+  }
+  const token = await fetchPlatformToken();
+  zee5Cache.platformToken = { value: token, fetchedAt: Date.now() };
+  return token;
+}
+
+async function getStreamUrl(channelId, userType = 'guest') {
+  const cacheKey = channelId;
+  const cached = zee5Cache.streamUrls.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < ZEE5_STREAM_TTL) {
+    return cached.value;
+  }
+
+  const platformToken = await getCachedPlatformToken();
+  const guestToken = generateGuestToken();
+  const ddToken = generateDDToken();
+
+  const { data } = await axios.post(
+    `https://spapi.zee5.com/singlePlayback/getDetails/secure?channel_id=${channelId}&device_id=${guestToken}&platform_name=desktop_web&translation=en&user_language=en,hi&country=IN&state=&app_version=4.24.0&user_type=${userType}&check_parental_control=false`,
+    { 'x-access-token': platformToken, 'X-Z5-Guest-Token': guestToken, 'x-dd-token': ddToken },
+    {
+      headers: {
+        'accept': 'application/json', 'content-type': 'application/json',
+        'origin': 'https://www.zee5.com', 'referer': 'https://www.zee5.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 15000
+    }
+  );
+
+  const videoToken = data?.keyOsDetails?.video_token;
+  if (!videoToken) {
+    const errCode = data?.error_code;
+    const errMsg = data?.error_msg || 'Could not get stream URL';
+    if (errCode === '3804') {
+      if (process.env.ZEE5_AUTH_TOKEN) {
+        throw new Error('ZEE5 subscription required for this channel. Your auth token may be invalid or expired.');
+      }
+      throw new Error('This channel requires a ZEE5 subscription. Set ZEE5_AUTH_TOKEN in .env with your authenticated token from ZEE5 browser session.');
+    }
+    if (errCode === '401') {
+      throw new Error('ZEE5 token expired. Try restarting the server to refresh the guest token.');
+    }
+    throw new Error(`ZEE5 error (${errCode || 'unknown'}): ${errMsg}`);
+  }
+
+  zee5Cache.streamUrls.set(cacheKey, { value: videoToken, fetchedAt: Date.now() });
+  return videoToken;
+}
+
+app.get('/api/zee5/play/:channelId', async (req, res) => {
+  try {
+    const streamUrl = await getStreamUrl(req.params.channelId);
+    res.json({ url: streamUrl });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+app.get('/api/zee5/redirect/:channelId', async (req, res) => {
+  try {
+    const streamUrl = await getStreamUrl(req.params.channelId);
+    res.redirect(302, streamUrl);
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+// ZEE5 CDN proxy (for segments if the CDN doesn't have CORS)
+app.get('/api/zee5/proxy/*', async (req, res) => {
+  try {
+    const targetUrl = req.params[0];
+    const response = await axios.get(targetUrl, {
+      responseType: 'stream',
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    res.set({
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': response.headers['content-type'] || 'application/octet-stream'
+    });
+    response.data.pipe(res);
+  } catch (e) {
+    res.status(502).json({ error: 'Proxy error: ' + e.message });
+  }
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

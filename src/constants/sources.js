@@ -4,6 +4,14 @@ export const NO_SANDBOX = null
 
 export const SOURCES = [
   {
+    label: 'Nxsha',
+    badge: 'sparkles',
+    movieUrl: (id) => `https://web.nxsha.app/embed/movie/${id}`,
+    tvUrl: (id, s, ep) => `https://web.nxsha.app/embed/tv/${id}/${s}/${ep}`,
+    desc: 'Main primary · Multi-server',
+    sandbox: NO_SANDBOX,
+  },
+  {
     label: 'Videasy',
     badge: 'video',
     movieUrl: (id) => `https://player.videasy.to/movie/${id}`,
